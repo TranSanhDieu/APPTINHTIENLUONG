@@ -1087,10 +1087,10 @@ if "ket_qua_luong" in st.session_state:
             height=180,
             value=(
                 "Kính gửi Anh/Chị {ho_ten},\n\n"
-                "{cong_ty} gửi Anh/Chị phiếu lương {ky_luong} (file PDF đính kèm).\n"
+                "Phòng Nhân sự {cong_ty} gửi Anh/Chị thông tin chi tiết về thu nhập và các khoản trích theo lương kỳ {ky_luong} (file PDF đính kèm).\n"
                 "Tiền thực lãnh: {thuc_lanh} triệu đồng.\n\n"
-                "Nếu có thắc mắc, Anh/Chị vui lòng phản hồi email này.\n\n"
-                "Trân trọng,\nPhòng Nhân sự"
+                "Mọi ý kiến phản hồi hoặc thắc mắc liên quan đến kỳ lương này, Anh/Chị vui lòng liên hệ Bộ phận Nhân sự để được giải quyết ổn thỏa.\n\n"
+                "Trân trọng cảm ơn,\nPhòng Nhân sự"
             ),
         )
         st.caption(
