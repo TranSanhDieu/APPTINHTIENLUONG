@@ -16,7 +16,7 @@ st.set_page_config(
 # =====================================================
 # 2. LOGO - KHÔNG LÀM APP BỊ LỖI NẾU THIẾU ẢNH
 # =====================================================
-DUONG_DAN_LOGO = "LOGO.jpg"
+DUONG_DAN_LOGO = "https://github.com/TranSanhDieu/APPTINHTIENLUONG/blob/main/PHOTO.jpg"
 
 if DUONG_DAN_LOGO.exists():
     st.image(str(DUONG_DAN_LOGO), width=150)
