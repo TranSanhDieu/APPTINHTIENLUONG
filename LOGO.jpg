@@ -1,1 +1,2 @@
-LOGO.jpg
+import os
+st.image("LOGO.jpg")
