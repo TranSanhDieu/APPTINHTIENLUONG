@@ -1,26 +1,38 @@
 
 import streamlit as st
-import os
-st.image("ANH.jpg")
-# =========================
-# CẤU HÌNH TRANG WEB
-# =========================
+import pandas as pd
+from pathlib import Path
+from io import BytesIO
+
+# =====================================================
+# 1. CẤU HÌNH TRANG
+# =====================================================
 st.set_page_config(
-    page_title="Ứng dụng tính lương thực lãnh",
+    page_title="Phần mềm tính tiền lương",
     page_icon="💰",
-    layout="centered"
+    layout="wide"
 )
 
-# =========================
-# HÀM ĐỊNH DẠNG TIỀN
-# =========================
+# =====================================================
+# 2. LOGO - KHÔNG LÀM APP BỊ LỖI NẾU THIẾU ẢNH
+# =====================================================
+THU_MUC_GOC = Path(__file__).resolve().parent
+DUONG_DAN_LOGO = THU_MUC_GOC / "LOGO.jpg"
+
+if DUONG_DAN_LOGO.exists():
+    st.image(str(DUONG_DAN_LOGO), width=200)
+
+# =====================================================
+# 3. HÀM ĐỊNH DẠNG
+# =====================================================
 def dinh_dang_tien(so_tien):
     return f"{so_tien:,.3f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-# =========================
-# HÀM TÍNH THUẾ TNCN
-# =========================
+# =====================================================
+# 4. HÀM TÍNH THUẾ TNCN
+# Giữ nguyên biểu thuế theo code ban đầu của người dùng
+# =====================================================
 def tinh_thue_tncn(thu_nhap_tinh_thue):
     if thu_nhap_tinh_thue <= 0:
         return 0.0
@@ -36,78 +48,16 @@ def tinh_thue_tncn(thu_nhap_tinh_thue):
         return thu_nhap_tinh_thue * 0.35 - 14.5
 
 
-# =========================
-# TIÊU ĐỀ ỨNG DỤNG
-# =========================
-st.title("💰 ỨNG DỤNG TÍNH LƯƠNG THỰC LÃNH")
-st.caption(
-    "Tính tổng thu nhập, bảo hiểm xã hội và các khoản bảo hiểm, "
-    "thuế thu nhập cá nhân và tiền lương sau khấu trừ."
-)
+# =====================================================
+# 5. HÀM TÍNH LƯƠNG CHO MỘT NHÂN VIÊN
+# =====================================================
+def tinh_luong(nhan_vien):
+    luong_co_ban = float(nhan_vien["Lương cơ bản"])
+    thuong = float(nhan_vien["Tiền thưởng"])
+    phu_cap_co_bhxh = float(nhan_vien["Phụ cấp tính BHXH"])
+    phu_cap_khong_bhxh = float(nhan_vien["Phụ cấp không tính BHXH"])
+    so_nguoi_phu_thuoc = int(nhan_vien["Số người phụ thuộc"])
 
-st.info(
-    "Đơn vị nhập liệu: triệu đồng/tháng. "
-    "Các mức giảm trừ và thuế suất bên dưới đang được lấy theo "
-    "công thức trong code bạn cung cấp."
-)
-
-# =========================
-# NHẬP THÔNG TIN LƯƠNG
-# =========================
-st.subheader("1. Thông tin thu nhập")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    luong_co_ban = st.number_input(
-        "Lương cơ bản (triệu đồng)",
-        min_value=0.0,
-        value=15.0,
-        step=0.5,
-        format="%.3f"
-    )
-
-    thuong = st.number_input(
-        "Tiền thưởng (triệu đồng)",
-        min_value=0.0,
-        value=2.0,
-        step=0.5,
-        format="%.3f"
-    )
-
-with col2:
-    phu_cap_co_bhxh = st.number_input(
-        "Phụ cấp tính BHXH (triệu đồng)",
-        min_value=0.0,
-        value=1.0,
-        step=0.5,
-        format="%.3f"
-    )
-
-    phu_cap_khong_bhxh = st.number_input(
-        "Phụ cấp không tính BHXH (triệu đồng)",
-        min_value=0.0,
-        value=0.5,
-        step=0.5,
-        format="%.3f"
-    )
-
-so_nguoi_phu_thuoc = st.number_input(
-    "Số người phụ thuộc",
-    min_value=0,
-    max_value=100,
-    value=1,
-    step=1
-)
-
-st.divider()
-
-# =========================
-# NÚT TÍNH TOÁN
-# =========================
-if st.button("🧮 TÍNH THUẾ VÀ LƯƠNG THỰC LÃNH", type="primary", use_container_width=True):
-
-    # 1. Tổng thu nhập
     tong_thu_nhap = (
         luong_co_ban
         + thuong
@@ -115,151 +65,501 @@ if st.button("🧮 TÍNH THUẾ VÀ LƯƠNG THỰC LÃNH", type="primary", use_c
         + phu_cap_khong_bhxh
     )
 
-    # 2. Khoản bảo hiểm người lao động đóng
-    tien_bhxh = (luong_co_ban + phu_cap_co_bhxh) * 0.105
+    tien_bao_hiem = (luong_co_ban + phu_cap_co_bhxh) * 0.105
 
-    # 3. Các khoản giảm trừ theo công thức ban đầu
     giam_tru_ban_than = 15.5
     giam_tru_nguoi_phu_thuoc = 6.2 * so_nguoi_phu_thuoc
 
-    # 4. Thu nhập tính thuế
     thu_nhap_tinh_thue = (
         tong_thu_nhap
         - giam_tru_ban_than
         - giam_tru_nguoi_phu_thuoc
-        - tien_bhxh
+        - tien_bao_hiem
     )
 
-    # 5. Tính thuế TNCN
     thue_tncn = tinh_thue_tncn(thu_nhap_tinh_thue)
 
-    # 6. Tiền lương thực lãnh
-    thuc_lanh = tong_thu_nhap - tien_bhxh - thue_tncn
+    thuc_lanh = tong_thu_nhap - tien_bao_hiem - thue_tncn
 
-    # =========================
-    # HIỂN THỊ KẾT QUẢ
-    # =========================
-    st.subheader("2. Kết quả tính toán")
+    return {
+        "Tổng thu nhập": tong_thu_nhap,
+        "Bảo hiểm người lao động đóng": tien_bao_hiem,
+        "Giảm trừ bản thân": giam_tru_ban_than,
+        "Giảm trừ người phụ thuộc": giam_tru_nguoi_phu_thuoc,
+        "Thu nhập tính thuế": max(0.0, thu_nhap_tinh_thue),
+        "Thuế TNCN": thue_tncn,
+        "Tiền thực lãnh": thuc_lanh,
+    }
 
-    col1, col2 = st.columns(2)
 
-    with col1:
-        st.metric(
-            "Tổng thu nhập",
-            f"{dinh_dang_tien(tong_thu_nhap)} triệu đồng"
+# =====================================================
+# 6. TẠO FILE EXCEL CÓ ĐỊNH DẠNG
+# =====================================================
+def tao_file_excel(df_chi_tiet):
+    output = BytesIO()
+
+    cot_tien = [
+        "Lương cơ bản",
+        "Tiền thưởng",
+        "Phụ cấp tính BHXH",
+        "Phụ cấp không tính BHXH",
+        "Tổng thu nhập",
+        "Bảo hiểm người lao động đóng",
+        "Giảm trừ bản thân",
+        "Giảm trừ người phụ thuộc",
+        "Thu nhập tính thuế",
+        "Thuế TNCN",
+        "Tiền thực lãnh",
+    ]
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        # Sheet 1: Bảng lương tổng hợp
+        df_chi_tiet.to_excel(
+            writer,
+            sheet_name="Bang luong",
+            index=False,
+            startrow=2
         )
 
-        st.metric(
-            "Bảo hiểm người lao động đóng",
-            f"{dinh_dang_tien(tien_bhxh)} triệu đồng"
+        ws = writer.sheets["Bang luong"]
+        ws["A1"] = "BẢNG TỔNG HỢP LƯƠNG VÀ THUẾ TNCN"
+        ws["A2"] = "Đơn vị tiền: triệu đồng/tháng"
+
+        # Sheet 2: Chi tiết từng nhân viên
+        df_chi_tiet.to_excel(
+            writer,
+            sheet_name="Chi tiet",
+            index=False
         )
 
-    with col2:
-        st.metric(
-            "Thu nhập tính thuế",
-            f"{dinh_dang_tien(max(0, thu_nhap_tinh_thue))} triệu đồng"
-        )
+        # Định dạng cả hai sheet
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-        st.metric(
-            "Thuế TNCN phải nộp",
-            f"{dinh_dang_tien(thue_tncn)} triệu đồng"
-        )
+        for sheet_name in ["Bang luong", "Chi tiet"]:
+            sheet = writer.sheets[sheet_name]
+            header_row = 3 if sheet_name == "Bang luong" else 1
 
-    st.success(
-        f"💵 TIỀN THỰC LÃNH: {dinh_dang_tien(thuc_lanh)} TRIỆU ĐỒNG/THÁNG"
-    )
+            for cell in sheet[header_row]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(
+                    fill_type="solid",
+                    fgColor="1F4E78"
+                )
+                cell.alignment = Alignment(
+                    horizontal="center",
+                    vertical="center",
+                    wrap_text=True
+                )
 
-    # =========================
-    # BẢNG CHI TIẾT
-    # =========================
-    st.subheader("3. Bảng chi tiết lương")
+            sheet.freeze_panes = f"A{header_row + 1}"
+            sheet.auto_filter.ref = (
+                f"A{header_row}:{sheet.cell(header_row, sheet.max_column).coordinate}"
+                f"{sheet.max_row}"
+            )
 
-    bang_ket_qua = {
-        "Khoản mục": [
+            for col_cells in sheet.columns:
+                col_letter = col_cells[0].column_letter
+                max_length = max(
+                    len(str(cell.value or ""))
+                    for cell in col_cells
+                )
+                sheet.column_dimensions[col_letter].width = min(
+                    max(max_length + 2, 14), 32
+                )
+
+            for row in sheet.iter_rows(
+                min_row=header_row + 1,
+                max_row=sheet.max_row
+            ):
+                for cell in row:
+                    cell.alignment = Alignment(vertical="center")
+                    if cell.column > 1 and cell.value is not None:
+                        # Định dạng số tiền, không định dạng cột số người phụ thuộc
+                        header = sheet.cell(header_row, cell.column).value
+                        if header in cot_tien:
+                            cell.number_format = '#,##0.000;[Red]-#,##0.000;0.000'
+
+        # Thêm dòng tổng cộng vào cuối bảng lương
+        ws = writer.sheets["Bang luong"]
+        dong_tong = ws.max_row + 1
+        ws.cell(dong_tong, 1, "TỔNG CỘNG")
+
+        cot_tong_hop = [
             "Lương cơ bản",
             "Tiền thưởng",
             "Phụ cấp tính BHXH",
             "Phụ cấp không tính BHXH",
-            "TỔNG THU NHẬP",
+            "Tổng thu nhập",
             "Bảo hiểm người lao động đóng",
-            "Giảm trừ bản thân",
-            "Giảm trừ người phụ thuộc",
-            "Thu nhập tính thuế trước khi xử lý âm",
-            "Thuế thu nhập cá nhân",
-            "TIỀN THỰC LÃNH"
-        ],
-        "Số tiền (triệu đồng)": [
-            luong_co_ban,
-            thuong,
-            phu_cap_co_bhxh,
-            phu_cap_khong_bhxh,
-            tong_thu_nhap,
-            -tien_bhxh,
-            -giam_tru_ban_than,
-            -giam_tru_nguoi_phu_thuoc,
-            thu_nhap_tinh_thue,
-            -thue_tncn,
-            thuc_lanh
+            "Thuế TNCN",
+            "Tiền thực lãnh",
         ]
-    }
 
-    import pandas as pd
+        # Tìm cột theo tiêu đề, tránh phụ thuộc thứ tự cột
+        tieu_de = {
+            ws.cell(3, col).value: col
+            for col in range(1, ws.max_column + 1)
+        }
 
-    df = pd.DataFrame(bang_ket_qua)
-    df["Số tiền (triệu đồng)"] = df["Số tiền (triệu đồng)"].map(
-        dinh_dang_tien
+        for ten_cot in cot_tong_hop:
+            if ten_cot in tieu_de:
+                col = tieu_de[ten_cot]
+                cot_chu = ws.cell(3, col).column_letter
+                ws.cell(
+                    dong_tong,
+                    col,
+                    f"=SUM({cot_chu}4:{cot_chu}{dong_tong - 1})"
+                )
+                ws.cell(dong_tong, col).number_format = '#,##0.000'
+
+        for cell in ws[dong_tong]:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(
+                fill_type="solid",
+                fgColor="D9EAF7"
+            )
+
+    output.seek(0)
+    return output.getvalue()
+
+
+# =====================================================
+# 7. GIAO DIỆN ỨNG DỤNG
+# =====================================================
+st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG")
+st.subheader("TS. VŨ ĐỨC BÌNH")
+
+st.caption(
+    "Tính đồng thời tiền lương, bảo hiểm, thuế TNCN và tiền thực lãnh "
+    "cho tối đa 500 người lao động."
+)
+
+st.info(
+    "Đơn vị nhập liệu là triệu đồng/tháng. "
+    "Ứng dụng sử dụng các mức giảm trừ và biểu thuế từ code ban đầu. "
+    "Vui lòng đối chiếu quy định pháp luật hiện hành trước khi dùng để trả lương thực tế."
+)
+
+# =====================================================
+# 8. CHỌN SỐ LƯỢNG NHÂN VIÊN
+# =====================================================
+st.subheader("1. Chọn số lượng người lao động")
+
+so_nhan_vien = st.number_input(
+    "Số người lao động cần tính",
+    min_value=1,
+    max_value=500,
+    value=10,
+    step=1
+)
+
+st.caption(
+    f"Bạn đang chọn tính lương cho {so_nhan_vien} người lao động."
+)
+
+# =====================================================
+# 9. NHẬP DỮ LIỆU NHÂN VIÊN
+# =====================================================
+st.subheader("2. Nhập thông tin lương")
+
+st.markdown(
+    "Nhập trực tiếp trên bảng bên dưới. "
+    "Có thể sao chép dữ liệu từ Excel và dán vào bảng."
+)
+
+if "du_lieu_nhan_vien" not in st.session_state:
+    st.session_state.du_lieu_nhan_vien = pd.DataFrame(
+        {
+            "Họ và tên": [f"Nhân viên {i + 1}" for i in range(500)],
+            "Lương cơ bản": [15.0] * 500,
+            "Tiền thưởng": [2.0] * 500,
+            "Phụ cấp tính BHXH": [1.0] * 500,
+            "Phụ cấp không tính BHXH": [0.5] * 500,
+            "Số người phụ thuộc": [1] * 500,
+        }
     )
 
-    st.dataframe(df, use_container_width=True, hide_index=True)
+# Hiển thị số dòng theo lựa chọn
+du_lieu_goc = st.session_state.du_lieu_nhan_vien.iloc[:int(so_nhan_vien)].copy()
 
-    # =========================
-    # GIẢI THÍCH CÔNG THỨC
-    # =========================
-    with st.expander("📘 Xem công thức tính"):
+du_lieu_nhap = st.data_editor(
+    du_lieu_goc,
+    use_container_width=True,
+    hide_index=True,
+    num_rows="fixed",
+    key=f"bang_nhap_{int(so_nhan_vien)}",
+    column_config={
+        "Họ và tên": st.column_config.TextColumn(
+            "Họ và tên",
+            required=True,
+            width="medium"
+        ),
+        "Lương cơ bản": st.column_config.NumberColumn(
+            "Lương cơ bản",
+            min_value=0.0,
+            step=0.1,
+            format="%.3f"
+        ),
+        "Tiền thưởng": st.column_config.NumberColumn(
+            "Tiền thưởng",
+            min_value=0.0,
+            step=0.1,
+            format="%.3f"
+        ),
+        "Phụ cấp tính BHXH": st.column_config.NumberColumn(
+            "Phụ cấp tính BHXH",
+            min_value=0.0,
+            step=0.1,
+            format="%.3f"
+        ),
+        "Phụ cấp không tính BHXH": st.column_config.NumberColumn(
+            "Phụ cấp không tính BHXH",
+            min_value=0.0,
+            step=0.1,
+            format="%.3f"
+        ),
+        "Số người phụ thuộc": st.column_config.NumberColumn(
+            "Số người phụ thuộc",
+            min_value=0,
+            max_value=100,
+            step=1,
+            format="%d"
+        ),
+    }
+)
 
-        st.markdown("""
-        **Bước 1. Tổng thu nhập**
+# Lưu dữ liệu vừa nhập để giữ lại khi đổi số lượng
+du_lieu_cap_nhat = st.session_state.du_lieu_nhan_vien.copy()
+du_lieu_cap_nhat.loc[:int(so_nhan_vien) - 1, du_lieu_nhap.columns] = (
+    du_lieu_nhap.reset_index(drop=True).values
+)
+st.session_state.du_lieu_nhan_vien = du_lieu_cap_nhat
 
-        Tổng thu nhập = Lương cơ bản + Thưởng + Phụ cấp tính BHXH
-        + Phụ cấp không tính BHXH.
+# =====================================================
+# 10. TÍNH TOÁN TOÀN BỘ NHÂN VIÊN
+# =====================================================
+st.divider()
 
-        **Bước 2. Khoản bảo hiểm**
+if st.button(
+    "🧮 TÍNH LƯƠNG TOÀN BỘ NHÂN VIÊN",
+    type="primary",
+    use_container_width=True
+):
+    if du_lieu_nhap["Họ và tên"].isna().any() or (
+        du_lieu_nhap["Họ và tên"].astype(str).str.strip() == ""
+    ).any():
+        st.error("Vui lòng nhập đầy đủ họ tên của tất cả nhân viên.")
+        st.stop()
 
-        Bảo hiểm = (Lương cơ bản + Phụ cấp tính BHXH) × 10,5%.
+    cot_so = [
+        "Lương cơ bản",
+        "Tiền thưởng",
+        "Phụ cấp tính BHXH",
+        "Phụ cấp không tính BHXH",
+        "Số người phụ thuộc",
+    ]
 
-        **Bước 3. Thu nhập tính thuế**
+    if du_lieu_nhap[cot_so].isna().any().any():
+        st.error("Vui lòng nhập đủ các số liệu lương trước khi tính.")
+        st.stop()
 
-        Thu nhập tính thuế = Tổng thu nhập − Giảm trừ bản thân
-        − Giảm trừ người phụ thuộc − Khoản bảo hiểm.
+    if (du_lieu_nhap[cot_so] < 0).any().any():
+        st.error("Các khoản lương và số người phụ thuộc không được âm.")
+        st.stop()
 
-        **Bước 4. Thuế TNCN**
+    if (
+        du_lieu_nhap["Số người phụ thuộc"]
+        != du_lieu_nhap["Số người phụ thuộc"].astype(int)
+    ).any():
+        st.error("Số người phụ thuộc phải là số nguyên.")
+        st.stop()
 
-        Áp dụng biểu thuế lũy tiến theo công thức trong chương trình.
+    ket_qua = []
 
-        **Bước 5. Tiền thực lãnh**
+    for _, nv in du_lieu_nhap.iterrows():
+        ket_qua_nv = tinh_luong(nv)
 
-        Tiền thực lãnh = Tổng thu nhập − Bảo hiểm − Thuế TNCN.
-        """)
+        dong = {
+            "Họ và tên": str(nv["Họ và tên"]).strip(),
+            "Lương cơ bản": float(nv["Lương cơ bản"]),
+            "Tiền thưởng": float(nv["Tiền thưởng"]),
+            "Phụ cấp tính BHXH": float(nv["Phụ cấp tính BHXH"]),
+            "Phụ cấp không tính BHXH": float(nv["Phụ cấp không tính BHXH"]),
+            "Số người phụ thuộc": int(nv["Số người phụ thuộc"]),
+        }
+        dong.update(ket_qua_nv)
+        ket_qua.append(dong)
 
-    # =========================
-    # XUẤT FILE CSV
-    # =========================
-    csv_data = pd.DataFrame({
-        "Khoản mục": bang_ket_qua["Khoản mục"],
-        "Số tiền (triệu đồng)": bang_ket_qua["Số tiền (triệu đồng)"]
-    }).to_csv(index=False).encode("utf-8-sig")
+    df_ket_qua = pd.DataFrame(ket_qua)
+
+    # Lưu kết quả để có thể tải file sau khi Streamlit chạy lại
+    st.session_state.ket_qua_luong = df_ket_qua
+
+# =====================================================
+# 11. HIỂN THỊ KẾT QUẢ VÀ XUẤT EXCEL
+# =====================================================
+if "ket_qua_luong" in st.session_state:
+    df_ket_qua = st.session_state.ket_qua_luong
+
+    st.subheader("3. Kết quả tính lương")
+
+    tong_thu_nhap_all = df_ket_qua["Tổng thu nhập"].sum()
+    tong_bao_hiem_all = df_ket_qua["Bảo hiểm người lao động đóng"].sum()
+    tong_thue_all = df_ket_qua["Thuế TNCN"].sum()
+    tong_thuc_lanh_all = df_ket_qua["Tiền thực lãnh"].sum()
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    c1.metric(
+        "Số nhân viên",
+        f"{len(df_ket_qua):,}"
+    )
+    c2.metric(
+        "Tổng thu nhập",
+        f"{dinh_dang_tien(tong_thu_nhap_all)} triệu"
+    )
+    c3.metric(
+        "Tổng thuế TNCN",
+        f"{dinh_dang_tien(tong_thue_all)} triệu"
+    )
+    c4.metric(
+        "Tổng tiền thực lãnh",
+        f"{dinh_dang_tien(tong_thuc_lanh_all)} triệu"
+    )
+
+    st.markdown("#### Bảng lương chi tiết")
+
+    cot_hien_thi = [
+        "Họ và tên",
+        "Lương cơ bản",
+        "Tiền thưởng",
+        "Phụ cấp tính BHXH",
+        "Phụ cấp không tính BHXH",
+        "Số người phụ thuộc",
+        "Tổng thu nhập",
+        "Bảo hiểm người lao động đóng",
+        "Thu nhập tính thuế",
+        "Thuế TNCN",
+        "Tiền thực lãnh",
+    ]
+
+    df_hien_thi = df_ket_qua[cot_hien_thi].copy()
+
+    cot_tien_hien_thi = [
+        "Lương cơ bản",
+        "Tiền thưởng",
+        "Phụ cấp tính BHXH",
+        "Phụ cấp không tính BHXH",
+        "Tổng thu nhập",
+        "Bảo hiểm người lao động đóng",
+        "Thu nhập tính thuế",
+        "Thuế TNCN",
+        "Tiền thực lãnh",
+    ]
+
+    st.dataframe(
+        df_hien_thi,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            cot: st.column_config.NumberColumn(
+                cot,
+                format="%.3f"
+            )
+            for cot in cot_tien_hien_thi
+        }
+    )
+
+    # Dòng tổng cộng trên giao diện
+    st.markdown("#### Tổng cộng toàn bộ nhân viên")
+
+    df_tong = pd.DataFrame([{
+        "Họ và tên": "TỔNG CỘNG",
+        "Lương cơ bản": df_ket_qua["Lương cơ bản"].sum(),
+        "Tiền thưởng": df_ket_qua["Tiền thưởng"].sum(),
+        "Phụ cấp tính BHXH": df_ket_qua["Phụ cấp tính BHXH"].sum(),
+        "Phụ cấp không tính BHXH": df_ket_qua["Phụ cấp không tính BHXH"].sum(),
+        "Số người phụ thuộc": df_ket_qua["Số người phụ thuộc"].sum(),
+        "Tổng thu nhập": tong_thu_nhap_all,
+        "Bảo hiểm người lao động đóng": tong_bao_hiem_all,
+        "Thu nhập tính thuế": df_ket_qua["Thu nhập tính thuế"].sum(),
+        "Thuế TNCN": tong_thue_all,
+        "Tiền thực lãnh": tong_thuc_lanh_all,
+    }])
+
+    st.dataframe(
+        df_tong,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            cot: st.column_config.NumberColumn(
+                cot,
+                format="%.3f"
+            )
+            for cot in cot_tien_hien_thi
+        }
+    )
+
+    # Xuất Excel
+    st.subheader("4. Xuất bảng lương Excel")
+
+    file_excel = tao_file_excel(df_ket_qua)
 
     st.download_button(
-        label="📥 TẢI BẢNG LƯƠNG CSV",
+        label="📥 TẢI FILE EXCEL BẢNG LƯƠNG (.xlsx)",
+        data=file_excel,
+        file_name="bang_luong_va_thue_TNCN.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+    # Xuất thêm CSV nếu cần
+    csv_data = df_ket_qua.to_csv(
+        index=False
+    ).encode("utf-8-sig")
+
+    st.download_button(
+        label="📥 TẢI FILE CSV",
         data=csv_data,
-        file_name="bang_tinh_luong.csv",
+        file_name="bang_luong_va_thue_TNCN.csv",
         mime="text/csv",
         use_container_width=True
     )
 
+# =====================================================
+# 12. GIẢI THÍCH VÀ LƯU Ý
+# =====================================================
+with st.expander("📘 Công thức tính lương"):
+    st.markdown("""
+    **1. Tổng thu nhập**
+
+    Lương cơ bản + Tiền thưởng + Phụ cấp tính BHXH
+    + Phụ cấp không tính BHXH.
+
+    **2. Bảo hiểm người lao động đóng**
+
+    (Lương cơ bản + Phụ cấp tính BHXH) × 10,5%.
+
+    **3. Thu nhập tính thuế**
+
+    Tổng thu nhập − 15,5 − (6,2 × số người phụ thuộc) − Bảo hiểm.
+
+    **4. Thuế TNCN**
+
+    Áp dụng công thức thuế lũy tiến được giữ lại từ code ban đầu.
+    Nếu thu nhập tính thuế không dương, thuế được tính bằng 0.
+
+    **5. Tiền thực lãnh**
+
+    Tổng thu nhập − Bảo hiểm − Thuế TNCN.
+
+    Đơn vị của các khoản tiền là triệu đồng/tháng.
+    """)
+
 st.divider()
 st.caption(
-    "Lưu ý: Kết quả là ước tính theo các giả định và công thức đã nhập, "
-    "không thay thế việc xác định nghĩa vụ thuế theo quy định pháp luật."
+    "Phần mềm tính theo các giả định được cài đặt trong mã nguồn. "
+    "Cần đối chiếu quy định thuế, bảo hiểm và giảm trừ hiện hành trước khi "
+    "dùng làm bảng lương chính thức."
 )
 
