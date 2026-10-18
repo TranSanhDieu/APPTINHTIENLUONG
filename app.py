@@ -16,10 +16,11 @@ st.set_page_config(
 # =====================================================
 # 2. LOGO - KHÔNG LÀM APP BỊ LỖI NẾU THIẾU ẢNH
 # =====================================================
-DUONG_DAN_LOGO = "https://github.com/TranSanhDieu/APPTINHTIENLUONG/blob/main/PHOTO.jpg"
+THU_MUC_GOC = Path(__file__).resolve().parent
+DUONG_DAN_LOGO = THU_MUC_GOC / "LOGO.jpg"
 
 if DUONG_DAN_LOGO.exists():
-    st.image(str(DUONG_DAN_LOGO), width=150)
+    st.image(str(DUONG_DAN_LOGO), width=200)
 
 # =====================================================
 # 3. HÀM ĐỊNH DẠNG
@@ -225,7 +226,7 @@ def tao_file_excel(df_chi_tiet):
 # =====================================================
 # 7. GIAO DIỆN ỨNG DỤNG
 # =====================================================
-st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG")
+st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG TOÀN BỘ NHÂN VIÊN")
 st.subheader("NGUYỄN THỊ HUYỀN TRÂN")
 
 st.caption(
