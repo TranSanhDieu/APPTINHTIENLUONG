@@ -192,8 +192,8 @@ def tao_zip(df, ky):
 logo = Path(__file__).resolve().parent / "LOGO.jpg"
 if logo.exists():
     st.image(str(logo), width=170)
-st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG")
-st.subheader("Song Hào")
+st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG CHO TOÀN BỘ NHÂN VIÊN")
+st.subheader("NGUYỄN THỊ HUYỀN TRÂN")
 st.info("Đơn vị các khoản tiền: TRIỆU ĐỒNG/THÁNG. Thuế và giảm trừ theo công thức mẫu đã cung cấp; cần kiểm tra quy định hiện hành trước khi trả lương thực tế.")
 st.caption("PDF không dùng font bổ sung nên sẽ hiển thị tiếng Việt KHÔNG DẤU; Excel và giao diện vẫn đầy đủ dấu.")
 
