@@ -227,7 +227,7 @@ def tao_file_excel(df_chi_tiet):
 # 7. GIAO DIỆN ỨNG DỤNG
 # =====================================================
 st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG")
-st.subheader("HVTH: NGUYỄN THỊ HUYỀN TRÂN")
+st.subheader("NGUYỄN THỊ HUYỀN TRÂN")
 
 st.caption(
     "Tính đồng thời tiền lương, bảo hiểm, thuế TNCN và tiền thực lãnh "
@@ -562,4 +562,3 @@ st.caption(
     "Cần đối chiếu quy định thuế, bảo hiểm và giảm trừ hiện hành trước khi "
     "dùng làm bảng lương chính thức."
 )
-
