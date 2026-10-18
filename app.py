@@ -192,8 +192,8 @@ def tao_zip(df, ky):
 logo = Path(__file__).resolve().parent / "LOGO.jpg"
 if logo.exists():
     st.image(str(logo), width=170)
-st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG CHO TOÀN BỘ NHÂN VIÊN")
-st.subheader("NGUYỄN THỊ HUYỀN TRÂN")
+st.title("💰 PHẦN MỀM TÍNH TIỀN LƯƠNG")
+st.subheader("Song Hào")
 st.info("Đơn vị các khoản tiền: TRIỆU ĐỒNG/THÁNG. Thuế và giảm trừ theo công thức mẫu đã cung cấp; cần kiểm tra quy định hiện hành trước khi trả lương thực tế.")
 st.caption("PDF không dùng font bổ sung nên sẽ hiển thị tiếng Việt KHÔNG DẤU; Excel và giao diện vẫn đầy đủ dấu.")
 
@@ -384,9 +384,9 @@ if "ket_qua" in st.session_state:
     subject = st.text_input("Tiêu đề email", value="Phiếu lương kỳ {ky_luong}", key="tieu_de_email")
     template = st.text_area("Nội dung email (có thể dùng {ho_ten}, {chuc_vu}, {ky_luong})", value=(
         "Kính gửi {ho_ten},\n\n"
-        "Phòng Nhân sự gửi Anh/Chị thông tin chi tiết về thu nhập và các khoản trích theo lương kỳ {ky_luong} Chi tiết vui lòng xem tại bảng tính đính kèm.\n"
-        "Mọi ý kiến phản hồi hoặc thắc mắc liên quan đến kỳ lương này, Anh/Chị vui lòng liên hệ Bộ phận Nhân sự để được giải quyết ổn thỏa.\n\n"
-        "Trân trọng cảm ơn,\nBộ phận Nhân sự"
+        "Bộ phận Nhân sự gửi Anh/Chị phiếu lương kỳ {ky_luong} đính kèm.\n"
+        "Vui lòng kiểm tra và liên hệ bộ phận Nhân sự nếu có thắc mắc.\n\n"
+        "Trân trọng,\nBộ phận Nhân sự"
     ), height=180, key="noi_dung_email")
 
     dot_gui = ma_dot_gui(df_mail, ky_mail, subject, template)
@@ -418,4 +418,52 @@ if "ket_qua" in st.session_state:
         st.text(template.replace("{ho_ten}", str(nv_preview["Họ và tên"]))
                 .replace("{chuc_vu}", str(nv_preview["Chức vụ"]))
                 .replace("{ky_luong}", ky_mail))
-        st.download_button("
+        st.download_button("📄 Xem phiếu PDF đính kèm", data=tao_pdf(nv_preview, ky_mail),
+                           file_name=f"xem_truoc_{ten_file(nv_preview['Họ và tên'])}.pdf", mime="application/pdf")
+
+    st.checkbox("Tôi đã kiểm tra người nhận, nội dung và đồng ý gửi phiếu lương chứa dữ liệu cá nhân.", key="xac_nhan_gui")
+    disabled = du_lieu_da_thay_doi or cau_hinh is None or not hop_le or not st.session_state.xac_nhan_gui or not subject.strip() or not template.strip()
+    if st.button(f"📨 XÁC NHẬN GỬI {len(hop_le)} EMAIL", type="primary", disabled=disabled, use_container_width=True):
+        # Không tự thử lại các thư lỗi để tránh gửi trùng khi máy chủ đã nhận thư.
+        # Mỗi SMTP send_message chỉ có đúng một địa chỉ người nhận.
+        thanh_cong = 0
+        that_bai = 0
+        progress = st.progress(0)
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=25) as smtp:
+                smtp.login(cau_hinh["address"], cau_hinh["app_password"])
+                for pos, i in enumerate(hop_le, 1):
+                    nv = df_mail.iloc[i]
+                    email = str(nv["Email cá nhân"]).strip()
+                    trang_thai = "Thất bại"
+                    ghi_chu = ""
+                    try:
+                        gui_mot_email(smtp, nv, ky_mail, cau_hinh["address"], subject, template)
+                        st.session_state.da_gui.add(i)
+                        trang_thai = "SMTP đã chấp nhận"
+                        thanh_cong += 1
+                    except (smtplib.SMTPException, OSError, ValueError) as exc:
+                        # Không đưa mật khẩu hay nội dung SMTP nhạy cảm vào báo cáo.
+                        ghi_chu = type(exc).__name__
+                        that_bai += 1
+                    st.session_state.bao_cao_gui.append({
+                        "STT": i+1, "Họ và tên": nv["Họ và tên"], "Email cá nhân": email,
+                        "Kỳ lương": ky_mail, "Trạng thái": trang_thai,
+                        "Thời gian": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "Ghi chú": ghi_chu
+                    })
+                    progress.progress(pos / len(hop_le))
+        except (smtplib.SMTPException, OSError, ValueError) as exc:
+            st.error(f"Không thể kết nối/đăng nhập Gmail ({type(exc).__name__}). Kiểm tra Gmail App Password và quyền kết nối SMTP của nền tảng.")
+            st.session_state["da_gui_email"] = True
+        if thanh_cong:
+            st.success(f"Máy chủ SMTP đã chấp nhận {thanh_cong} email. Điều này không bảo đảm thư đã vào hộp thư đến.")
+        if that_bai:
+            st.warning(f"Có {that_bai} email không gửi được; xem báo cáo phía dưới.")
+
+    if st.session_state.get("bao_cao_gui"):
+        st.markdown("**Báo cáo kết quả gửi email trong đợt này**")
+        bao_cao = tao_bao_cao_gui(st.session_state.bao_cao_gui)
+        st.dataframe(bao_cao, hide_index=True, use_container_width=True)
+        st.download_button("📥 Tải báo cáo CSV", bao_cao.to_csv(index=False).encode("utf-8-sig"),
+                           file_name="bao_cao_gui_phieu_luong.csv", mime="text/csv")
+        st.caption("Báo cáo chỉ tồn tại trong phiên làm việc này. Không tự gửi lại email đã được SMTP chấp nhận trong cùng đợt.")
