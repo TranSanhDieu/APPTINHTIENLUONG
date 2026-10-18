@@ -16,11 +16,10 @@ st.set_page_config(
 # =====================================================
 # 2. LOGO - KHÔNG LÀM APP BỊ LỖI NẾU THIẾU ẢNH
 # =====================================================
-THU_MUC_GOC = Path(__file__).resolve().parent
-DUONG_DAN_LOGO = THU_MUC_GOC / "LOGO.jpg"
+DUONG_DAN_LOGO = "LOGO.jpg"
 
 if DUONG_DAN_LOGO.exists():
-    st.image(str(DUONG_DAN_LOGO), width=200)
+    st.image(str(DUONG_DAN_LOGO), width=150)
 
 # =====================================================
 # 3. HÀM ĐỊNH DẠNG
