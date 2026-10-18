@@ -1,7 +1,7 @@
 
 import streamlit as st
 import os
-st.image("LOGO.jpg")
+st.image("ANH.jpg")
 # =========================
 # CẤU HÌNH TRANG WEB
 # =========================
