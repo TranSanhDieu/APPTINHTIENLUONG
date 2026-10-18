@@ -384,9 +384,9 @@ if "ket_qua" in st.session_state:
     subject = st.text_input("Tiêu đề email", value="Phiếu lương kỳ {ky_luong}", key="tieu_de_email")
     template = st.text_area("Nội dung email (có thể dùng {ho_ten}, {chuc_vu}, {ky_luong})", value=(
         "Kính gửi {ho_ten},\n\n"
-        "Bộ phận Nhân sự gửi Anh/Chị phiếu lương kỳ {ky_luong} đính kèm.\n"
-        "Vui lòng kiểm tra và liên hệ bộ phận Nhân sự nếu có thắc mắc.\n\n"
-        "Trân trọng,\nBộ phận Nhân sự"
+        "Phòng Nhân sự gửi Anh/Chị thông tin chi tiết về thu nhập và các khoản trích theo lương kỳ {ky_luong} Chi tiết vui lòng xem tại bảng tính đính kèm.\n"
+        "Mọi ý kiến phản hồi hoặc thắc mắc liên quan đến kỳ lương này, Anh/Chị vui lòng liên hệ Bộ phận Nhân sự để được giải quyết ổn thỏa.\n\n"
+        "Trân trọng cảm ơn,\nBộ phận Nhân sự"
     ), height=180, key="noi_dung_email")
 
     dot_gui = ma_dot_gui(df_mail, ky_mail, subject, template)
